@@ -1,0 +1,626 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US">
+
+<head>
+ <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+ <meta http-equiv="Content-Script-Type" content="text/javascript" />
+ <title>Tutorial: OpenCV haartraining (Rapid Object Detection With A Cascade of Boosted Classifiers Based on Haar-like Features) - Naotoshi Seo</title>
+ <link rel="stylesheet" type="text/css" media="screen" href="/pukiwiki/skin/andreas01/andreas01.css" />
+ <link rel="stylesheet" type="text/css" media="print" href="/pukiwiki/skin/andreas01/andreas01.print.css" />
+ <link rel="alternate" type="application/rss+xml" title="RSS" href="http://note.sonots.com/?cmd=rss" />
+ <script type="text/javascript">
+ <!--
+var SKIN_URI="/pukiwiki/skin/";
+var IMAGE_URI="/pukiwiki/image/";
+var DEFAULT_LANG="en_US";
+var LANG="en_US";
+ // -->
+ </script>
+ <script type="text/javascript" src="/pukiwiki/skin/lang/en_US.js"></script>
+ <script type="text/javascript" src="/pukiwiki/skin/default.js"></script>
+ <script type="text/javascript" src="/pukiwiki/skin/ajax/textloader.js"></script>
+ <script type="text/javascript" src="/pukiwiki/skin/ajax/glossary.js"></script>
+ <script type="text/javascript" src="/pukiwiki/skin/tzCalculation_LocalTimeZone.js"></script>
+ <meta name="keywords" content="SciSoftware, ComputerVision, FaceDetection, OpenCV" />
+
+<script type="text/javascript" charset="UTF-8" src="//cache1.value-domain.com/xrea_header.js" async="async"></script>
+</head>
+<body>
+<div id="wrap">
+ <div id="header">
+  <h1><a href="http://note.sonots.com/">Naotoshi Seo</a></h1>
+   </div>
+ <img id="frontphoto" src="/pukiwiki/skin/andreas01/front.jpg" width="760" height="175" alt="" />
+  
+ <div id="leftside"><div class="page"><ul class="menu"><li><a href="http://note.sonots.com/SciSoftware.html" title="SciSoftware (13m)">SciSoftware</a></li><li><a href="http://note.sonots.com/TechNotes.html" title="TechNotes (87d)">TechNotes</a><ul class="menu"><li><a href="http://note.sonots.com/Matlab.html" title="Matlab (1204d)">Matlab</a></li><li><a href="http://note.sonots.com/OpenCV.html" title="OpenCV (1310d)">OpenCV</a></li><li><a href="http://note.sonots.com/Mex.html" title="Mex (1261d)">Matlab C</a></li></ul></li><li><a href="http://note.sonots.com/MathNotes.html" title="MathNotes (1357d)">MathNotes</a></li><li><a href="http://note.sonots.com/Undergrad/Software.html" title="Undergrad/Software (749d)">Undergrad</a></li><li><a href="http://note.sonots.com/About.html" title="About (925d)">About</a></li><li><a href="http://note.sonots.com/RecentChanges.html" title="RecentChanges (11m)">RecentChanges</a></li></ul></div><div class="box"><h2 id="h2_content_6_0">Announce  <a class="anchor_super" id="c00588c8"></a></h2><p>Puki<span class="tooltip" onmouseover="javascript:this.style.backgroundColor='#ffe4e1';showGlossaryPopup('http://note.sonots.com/?plugin=tooltip&amp;q=Wiki',event,0.2);" onmouseout="javascript:this.style.backgroundColor='transparent';hideGlossaryPopup();">Wiki</span> contents have been moved into <a href="http://lsx.sourceforge.jp" rel="nofollow">SONOTS Plugin</a> (20070703)</p></div></div>  <div id="contentwide">
+   <div class="post">
+    <h2 class="firstHeading"><a href="http://note.sonots.com/SciSoftware/haartraining.html" title="SciSoftware/haartraining (1204d)">Tutorial: OpenCV haartraining (Rapid Object Detection With A Cascade of Boosted Classifiers Based on Haar-like Features)</a></h2>
+    <table border="0" class="toc"><tbody>
+<tr><td class="toctitle">
+<span>Table of Contents</span>
+</td></tr>
+<tr><td class="toclist">
+<ul class="contentsx"><li><a href="#e134e74e">Objective</a></li><li><a href="#wf43989b">Data Prepartion</a><ul><li><a href="#t1a1f262">Positive (Face) Images</a></li><li><a href="#z97120d9">Negative (Background) Images</a></li><li><a href="#dbe814b1">Natural Test (Face in Background) Images</a></li><li><a href="#ybd647df">How to Crop Images Manually Fast</a></li></ul></li><li><a href="#w0a08ab4">Create Samples (Reference)</a><ul><li><a href="#n738280e">1. Create training samples from one</a></li><li><a href="#e5c54f60">2. Create training samples from some</a></li><li><a href="#d53fc8c9">3. Create test samples</a></li><li><a href="#y74a0e2d">4. Show images</a></li><li><a href="#a860406f">EXTRA: random seed</a></li></ul></li><li><a href="#n4ea83fa">Create Samples</a><ul><li><a href="#o40a43fd">Create Training Samples</a></li><li><a href="#p0f55d5f">Create Testing Samples</a></li></ul></li><li><a href="#q16bb608">Training</a><ul><li><a href="#x15ebd98">Haar Training</a></li><li><a href="#n43ec47f">Generate a XML File</a></li></ul></li><li><a href="#l8e2f850">Testing</a><ul><li><a href="#mda65705">Performance Evaluation</a></li><li><a href="#be40b3c1">Fun with a USB camera</a></li></ul></li><li><a href="#w0010b88">Experiments</a><ul><li><a href="#kd04ae8f">PIE Expeirment 1</a></li><li><a href="#dec1283e">PIE Experiment 2</a></li><li><a href="#tbc650a5">PIE Experiment 3</a></li><li><a href="#j453296d">PIE Experiment 4</a></li><li><a href="#h04cc8f8">PIE Experiment 5</a></li><li><a href="#j1d5e509">PIE Experiment 6</a></li><li><a href="#p11ee6e0">UMIST Experiment 1</a></li><li><a href="#ldcb43c5">UMIST Experiment 2</a></li><li><a href="#f6508528">CBCL Experiment 1</a></li><li><a href="#l7a173e3">haarcascade_frontalface_alt2.xml</a></li></ul></li><li><a href="#t334b6aa">Discussion</a></li><li><a href="#v6f077ba">Download</a><ul><li><a href="#s6247634">How to enable OpenMP</a></li></ul></li><li><a href="#z5c89cdd">References</a></li></ul></td></tr>
+</tbody></table>
+
+<h2 id="h2_content_1_0">Objective  <a class="anchor_super" id="e134e74e"></a></h2>
+<p>The OpenCV library provides us a greatly interesting demonstration for a face detection.
+Furthermore, it provides us programs (or functions) that they used to train classifiers for their face detection system, called HaarTraining, so that we can create our own object classifiers using these functions. It is interesting.</p>
+<p>However, I could not follow how OpenCV developers performed the haartraining for their face detection system exactly because they did not provide us several information such as what images and parameters they used for training.
+The objective of this report is to provide step-by-step procedures for following people.</p>
+<p>My working environment is Visual Studio + cygwin on Windows XP, or on Linux.
+The cygwin is required because I use several UNIX commands. I am sure that you will use the cygwin (especially I mean UNIX commands) not only for this haartraining but also for others in the future if you are one of engineer or science people.</p>
+<p>FYI: I recommend you to work haartrainig with something different concurrently because you have to wait so many days during training (it would possibly take <strong>one week</strong>). I typically experimented as 1. run haartraining on Friday 2. forget about it completely 3. see results on next Friday 4. run another haartraining (loop).</p>
+<div style="text-align:center;">
+<p><img src="http://note.sonots.com/?plugin=ref&amp;page=SciSoftware%2Fhaartraining&amp;src=figure_3.gif" alt="figure_3.gif" title="figure_3.gif" width="370" height="278" /><br />
+A picture from the OpenCV website</p>
+</div>
+<p><strong>History</strong></p>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li>10/16/2008 - Additional experimental results.</li>
+<li>08/28/2008 - Revised entirely.</li>
+<li>06/05/2007 - opencv-1.0.0</li>
+<li>03/12/2006 - First Edition (opencv-0.9.7)</li></ul>
+<p><span class="tag">Tag: <a href="http://note.sonots.com/?cmd=taglist&amp;tag=SciSoftware">SciSoftware</a> <a href="http://note.sonots.com/?cmd=taglist&amp;tag=ComputerVision">ComputerVision</a> <a href="http://note.sonots.com/?cmd=taglist&amp;tag=FaceDetection">FaceDetection</a> <a href="http://note.sonots.com/?cmd=taglist&amp;tag=OpenCV">OpenCV</a> </span></p>
+
+<h2 id="h2_content_1_1">Data Prepartion  <a class="anchor_super" id="wf43989b"></a></h2>
+<p>FYI: There are database lists on <a class="ext" href="http://www.face-rec.org/databases/" rel="nofollow">Face Recognition Homepage - Databases<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://www.face-rec.org/databases/', '_blank');" /></a>. and <a class="ext" href="http://www.cs.cmu.edu/~cil/v-images.html" rel="nofollow">Computer Vision Test Images<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://www.cs.cmu.edu/~cil/v-images.html', '_blank');" /></a>.</p>
+
+<h3 id="h3_content_1_2">Positive (Face) Images  <a class="anchor_super" id="t1a1f262"></a></h3>
+<p>We need to collect positive images that contain only objects of interest, e.g., faces.</p>
+<p>Kuranov et. al. <a href="#Kuranov">[3</a>] mentions as they used <strong>5000</strong> positive frontal face patterns, and 5000 positive frontal face patterns were derived from 1000 original faces. I describe how to increase number of samples at the later chapter.</p>
+<p>Before, I downloaded and used <a class="ext" href="http://images.ee.umist.ac.uk/danny/database.html" rel="nofollow">The UMIST Face Database<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://images.ee.umist.ac.uk/danny/database.html', '_blank');" /></a> (Dead Link) because cropped face images were available at there.
+The UMIST Face Database has video-like image sequences from side-faces to frontal faces. I thought training with such images would generate a face detector which is robust to facial pose. However, the generated face detector did not work well. Probably, I dreamed too much. It was a story on 2006.</p>
+<p>I obtained a cropped frontal face database based on <a class="ext" href="http://www.ri.cmu.edu/projects/project_418.html" rel="nofollow">CMU PIE Database<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://www.ri.cmu.edu/projects/project_418.html', '_blank');" /></a>. I use it too. This dataset has a large illumination variations, thus this would result in the same bad result with the case of the UMIST Face Database which had large variations in poses. <br class="spacer" />#Sorry, it looks redistribution (of modifications) of PIE database is not allowed. I made only a generated (distorted and diminished) .vec file available at the <a href="#v6f077ba">Download</a> section. The PIE database is free (send a request e-mail), but it does not include the cropped faces originally.</p>
+<p><a class="ext" href="http://cbcl.mit.edu/software-datasets/FaceData2.html" rel="nofollow">MIT CBCL Face Data<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://cbcl.mit.edu/software-datasets/FaceData2.html', '_blank');" /></a> is another choice. They have 2,429 frontal faces with few illumination variations and pose variations. This data would be good for haartraining. However, the size of image is originally small 19 x 19. So, we can not perform experiments to determine good sizes.</p>
+<p>Probably, the OpenCV developers used the <a class="ext" href="http://www.itl.nist.gov/iad/humanid/feret/feret_master.html" rel="nofollow">FERET<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://www.itl.nist.gov/iad/humanid/feret/feret_master.html', '_blank');" /></a> database. It looks that the FERET database became available to download over internet from Jan. 31, 2008(?).</p>
+
+<h3 id="h3_content_1_3">Negative (Background) Images  <a class="anchor_super" id="z97120d9"></a></h3>
+<p>We need to collect negative images that does not contain objects of interest, e.g., faces to train haarcascade classifier.</p>
+<p>Kuranov et. al. <a href="#Kuranov">[3</a>] states as they used <strong>3000</strong> negative images.</p>
+<p>Fortunately, I found <a class="ext" href="http://face.urtho.net/" rel="nofollow">http://face.urtho.net/<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://face.urtho.net/', '_blank');" /></a> (Negatives sets, Set 1 - Various negatives) which has about 3500 images (Dead Link).
+But, this collection was used for eye detection, and includes some faces in some pictures.
+Therefore, I deleted all suspicious images which looked including faces.
+About 2900 images were remained, and I added 100 images to there. The number should be enough.</p>
+<p>The collection is available at the <a href="#v6f077ba">Download</a> section (But, it may take forever to download.)</p>
+
+<h3 id="h3_content_1_4">Natural Test (Face in Background) Images  <a class="anchor_super" id="dbe814b1"></a></h3>
+<p>We can synthesize testing image sets using the createsamples utility, but having a natural testing image dataset is still good.</p>
+<p>There is a <a class="ext" href="http://vasc.ri.cmu.edu/idb/html/face/frontal_images/" rel="nofollow">CMU-MIT Frontal Face Test Set<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://vasc.ri.cmu.edu/idb/html/face/frontal_images/', '_blank');" /></a> that the OpenCV developers used for their experiments. This dataset has a ground truth text including information for locations of eyes, noses, and lip centers and tips, however, it does not have locations of faces expressed by rectangle regions required by the haartraining utilities as default.</p>
+<p>I created a simple script to compute facial regions from given ground truth information. My computation works as follows:</p>
+<pre>1. Get margin as nose height - mouse height
+Lower boundary is located below the margin from the mouse
+Upper boundary is located above the margin from the eye
+2. Get margin as left mouse tip - right mouse tip
+Right boundary is located right the margin from the right eye
+Left boundary is located left the margin from the left eye</pre>
+<p>This was not perfect, but looked okay.</p>
+<p>The generated ground truth text and image dataset is available at the <a href="#v6f077ba">Download</a> section, you may download only the <a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/data/CMU-MIT_Face_Test_Set/cmu_tests.dat.orig" rel="nofollow">ground truth text<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/data/CMU-MIT_Face_Test_Set/cmu_tests.dat.orig', '_blank');" /></a>. By the way, I converted GIF to PNG because OpenCV does not support GIF. The mogrify (ImageMagick) command would be useful to do such conversion of image types</p>
+<pre>$ mogrify -format png *.gif</pre>
+
+<h3 id="h3_content_1_5">How to Crop Images Manually Fast  <a class="anchor_super" id="ybd647df"></a></h3>
+<p>To collect positive images, you may have to crop images a lot by your hand.</p>
+<p>I created a multi-platform software <a class="ext" href="http://code.google.com/p/imageclipper/" rel="nofollow">imageclipper<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://code.google.com/p/imageclipper/', '_blank');" /></a> to help to do it.
+This software is not only for haartraining but also for other computer vision/machine learning researches. This software has characteristics as follows:</p>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li>You can open images in a directory sequentially</li>
+<li>You can open a video file too, frame by frame</li>
+<li>Clipping and moving to the next image can be done by one button (SPACE)</li>
+<li>You will select a region to clip by dragging left mouse button</li>
+<li>You can move or resize your selected region by dragging right mouse button</li>
+<li>Your selected region is shown on the next image too.</li></ul>
+
+<h2 id="h2_content_1_6">Create Samples (Reference)  <a class="anchor_super" id="w0a08ab4"></a></h2>
+<p>We can create training samples and testing samples with the createsamples utility.
+In this section, I describe functionalities of the createsamples software
+because the Tutorial <a href="#Tutorial">[1</a>] did not explain them clearly for me (but please see the Tutorial <a href="#Tutorial">[1</a>] also for further options).</p>
+<p>This is a list of options, but there are mainly four functions and the meanings of options become different in different functions. It confuses us.</p>
+<pre>Usage: ./createsamples
+  [-info &lt;description_file_name&gt;]
+  [-img &lt;image_file_name&gt;]
+  [-vec &lt;vec_file_name&gt;]
+  [-bg &lt;background_file_name&gt;]
+  [-num &lt;number_of_samples = 1000&gt;]
+  [-bgcolor &lt;background_color = 0&gt;]
+  [-inv] [-randinv] [-bgthresh &lt;background_color_threshold = 80&gt;]
+  [-maxidev &lt;max_intensity_deviation = 40&gt;]
+  [-maxxangle &lt;max_x_rotation_angle = 1.100000&gt;]
+  [-maxyangle &lt;max_y_rotation_angle = 1.100000&gt;]
+  [-maxzangle &lt;max_z_rotation_angle = 0.500000&gt;]
+  [-show [&lt;scale = 4.000000&gt;]]
+  [-w &lt;sample_width = 24&gt;]
+  [-h &lt;sample_height = 24&gt;]
+</pre>
+
+<h3 id="h3_content_1_7">1. Create training samples from one  <a class="anchor_super" id="n738280e"></a></h3>
+<p><a class="anchor" id="samples"></a>
+The 1st function of the createsamples utility is to create training samples from one image applying distortions.
+This function (cvhaartraining.cpp#cvCreateTrainingSamples) is launched when options, -img, -bg, and -vec were specified.</p>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li>-img &lt;one_positive_image&gt;</li>
+<li>-bg  &lt;collection_file_of_negatives&gt;</li>
+<li>-vec &lt;name_of_the_output_file_containing_the_generated_samples&gt;</li></ul>
+<p>For example,</p>
+<pre>$ createsamples -img face.png -num 10 -bg negatives.dat -vec samples.vec -maxxangle 0.6 -maxyangle 0 -maxzangle 0.3 -maxidev 100 -bgcolor 0 -bgthresh 0 -w 20 -h 20</pre>
+<p>This generates &lt;num&gt; number of samples from one &lt;positive_image&gt; applying distortions.
+Be careful that only the first &lt;num&gt; negative images in the &lt;collection_file_of_negatives&gt; are used.</p>
+<p>The file of the &lt;collection_file_of_negatives&gt; is as follows:</p>
+<pre>[filename]
+[filename]
+[filename]
+...</pre>
+<p>such as</p>
+<pre>img/img1.jpg
+img/img2.jpg</pre>
+<p>Let me call this file format as <strong>collection file format</strong>.</p>
+<p><strong>How to create a collection file</strong></p>
+<p>This format can easily be created with the find command as</p>
+<pre>$ cd [your working directory]
+$ find [image dir] -name '*.[image ext]' &gt; [description file]</pre>
+<p>such as</p>
+<pre>$ find ../../data/negatives/ -name '*.jpg' &gt; negatives.dat</pre>
+
+<h3 id="h3_content_1_8">2. Create training samples from some  <a class="anchor_super" id="e5c54f60"></a></h3>
+<p><a class="anchor" id="samplesfrominfo"></a>
+The 2nd function is to create training samples from some images without applying distortions.
+This function (cvhaartraining.cpp#cvCreateTestSamples) is launched when options, -info, and -vec were specified.</p>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li>-info &lt;description_file_of_samples&gt;</li>
+<li>-vec  &lt;name_of_the_output_file_containing_the_generated_samples&gt;</li></ul>
+<p>For example,</p>
+<pre>$ createsamples -info samples.dat -vec samples.vec -w 20 -h 20</pre>
+<p>This generates samples without applying distortions.
+You may think this function as a file format conversion function.</p>
+<p>The format of the &lt;description_file_of_samples&gt; is as follows:</p>
+<pre>[filename] [# of objects] [[x y width height] [... 2nd object] ...]
+[filename] [# of objects] [[x y width height] [... 2nd object] ...]
+[filename] [# of objects] [[x y width height] [... 2nd object] ...]
+...</pre>
+<p>where (x,y) is the left-upper corner of the object where the origin (0,0) is the left-upper corner of the image such as</p>
+<pre>img/img1.jpg 1 140 100 45 45
+img/img2.jpg 2 100 200 50 50 50 30 25 25
+img/img3.jpg 1 0 0 20 20</pre>
+<p>Let me call this format as a <strong>description file format</strong> against the collection file format although the manual <a href="#Tutorial">[1</a>] does not differentiate them.</p>
+<p>This function crops regions specified and resize these images and convert into .vec format, but (let me say again) <strong>this function does not generate many samples from one image</strong> (one cropped image) applying distortions.
+Therefore, you may use this 2nd function only when you have already sufficient number of natural images and their ground truths (totally, 5000 or 7000 would be required).</p>
+<p>Note that the option -num is used only to restrict the number of samples to generate, not to increase number of samples applying distortions in this case.</p>
+<p><strong>How to create a description file</strong></p>
+<p>I write how to create a description file when already-cropped image files are available here because some people had asked how to create it at the OpenCV forum.
+Note that my tutorial steps do not require to perform this.</p>
+<p>For such a situation, you can use the find command and the <a class="ext" href="http://www.imagemagick.org/script/identify.php" rel="nofollow">identify<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://www.imagemagick.org/script/identify.php', '_blank');" /></a> command (cygwin should have identify (ImageMagick) command) to create a description file as</p>
+<pre>$ cd &lt;your working directory&gt;
+$ find &lt;dir&gt; -name '*.&lt;ext&gt;' -exec identify -format '%i 1 0 0 %w %h' \{\} \; &gt; &lt;description_file&gt;</pre>
+<p>such as</p>
+<pre>$ find ../../data/umist_cropped -name '*.pgm' -exec identify -format '%i 1 0 0 %w %h' \{\} \; &gt; samplesdescription.dat</pre>
+<p>If all images have the same size, it becomes simpler and faster,</p>
+<pre>$ find &lt;dir&gt; -name '*.&lt;ext&gt;' -exec echo \{\} 1 0 0 &lt;width&gt; &lt;height&gt; \; &gt; &lt;description_file&gt;</pre>
+<p>such as</p>
+<pre>$ find ../../data/umist_cropped -name '*.pgm' -exec echo \{\} 1 0 0 20 20 \; &gt; samplesdescription.dat</pre>
+<p>How to automate to crop images? If you can do it, you do not need haartraining. You have an object detector already   <img alt="&#40;^-^" src="/pukiwiki/image/face/bigsmile.png" /></p>
+
+<h3 id="h3_content_1_9">3. Create test samples  <a class="anchor_super" id="d53fc8c9"></a></h3>
+<p><a class="anchor" id="tests"></a>
+The 3rd function is to create test samples and their ground truth from single image applying distortions.
+This function (cvsamples.cpp#cvCreateTrainingSamplesFromInfo) is triggered when options, -img, -bg, and -info were specified.</p>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li>-img &lt;one_positive_image&gt;</li>
+<li>-bg  &lt;collection_file_of_negatives&gt;</li>
+<li>-info &lt;generated_description_file_for_the_generated_test_images&gt;</li></ul>
+<p>In this case, -w and -h are used to determine the minimal size of positives to be embeded in the test images.</p>
+<pre>$ createsamples -img face.png -num 10 -bg negatives.dat -info test.dat -maxxangle 0.6 -maxyangle 0 -maxzangle 0.3 -maxidev 100 -bgcolor 0 -bgthresh 0</pre>
+<p>Be careful that only the first &lt;num&gt; negative images in the &lt;collection_file_of_negatives&gt; are used.</p>
+<p>This generates tons of jpg files such as</p>
+<p><img src="http://note.sonots.com/?plugin=ref&amp;page=SciSoftware%2Fhaartraining&amp;src=0001_0351_0227_0115_0115.jpg" alt="0001_0351_0227_0115_0115.jpg" title="0001_0351_0227_0115_0115.jpg" width="320" height="240" /></p>
+<p>The output image filename format is as &lt;number&gt;_&lt;x&gt;_&lt;y&gt;_&lt;width&gt;_&lt;height&gt;.jpg, where x, y, width and height are the coordinates of placed object bounding rectangle.</p>
+<p>Also, this generates &lt;description_file_for_test_samples&gt; of the <strong>description file format</strong> (the same format with &lt;description_file_of_samples&gt; at the 2nd function).</p>
+
+<h3 id="h3_content_1_10">4. Show images  <a class="anchor_super" id="y74a0e2d"></a></h3>
+<p><a class="anchor" id="show"></a>
+The 4th function is to show images within a vec file.
+This function (cvsamples.cpp#cvShowVecSamples) is triggered when only an option, -vec, was specified (no -info, -img, -bg). For example,</p>
+<pre>$ createsamples -vec samples.vec -w 20 -h 20</pre>
+
+<h3 id="h3_content_1_11">EXTRA: random seed  <a class="anchor_super" id="a860406f"></a></h3>
+<p>The createsamples software applys the same sequence of distortions for each image.
+We may want to apply the different sequence of distortions for each image because, otherwise, our resulting detection may work only for specific distortions.</p>
+<p>This can be done by modifying createsamples slightly as:</p>
+<p>Add below in the top</p>
+<pre>#include&lt;time.h&gt;</pre>
+<p>Add below in the main function</p>
+<pre>srand(time(NULL));</pre>
+<p>The modified source code is available at <a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src/createsamples.cpp" rel="nofollow">svn:createsamples.cpp<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src/createsamples.cpp', '_blank');" /></a></p>
+
+<h2 id="h2_content_1_12">Create Samples  <a class="anchor_super" id="n4ea83fa"></a></h2>
+
+<h3 id="h3_content_1_13">Create Training Samples  <a class="anchor_super" id="o40a43fd"></a></h3>
+<p>Kuranov et. al. <a href="#Kuranov">[3</a>] mentions as they used 5000 positive frontal face patterns and 3000 negatives for training, and 5000 positive frontal face patterns were derived from 1000 original faces.</p>
+<p>However, you may have noticed that none of 4 functions of the createsamples utility provide us a function to generate 5000 positive images from 1000 images at burst.
+We have to use the 1st function of the createsamples to generate 5 (or some) positives form 1 image, repeat the procedures 1000 (or some) times, and finally merge the generated output vec files. <a id="notetext_1" href="#notefoot_1" class="note_super" title="There was a choi...">*1</a></p>
+<p>I wrote a program,  <a href="http://note.sonots.com/SciSoftware/haartraining/mergevec.cpp.html" title="mergevec.cpp (1773d)">mergevec.cpp</a><a class="anchor" id="mergevec"></a>, to merge vec files.
+I also wrote a script, <a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/bin/createtrainsamples.pl" rel="nofollow">createtrainsamples.pl<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/bin/createtrainsamples.pl', '_blank');" /></a><a class="anchor" id="createtrainsamples"></a>, to repeat the procedures 1000 (or some) times.
+I specified 7000 instead of 5000 as default because the Tutorial <a href="#Tutorial">[1</a>] states as &quot;the reasonable number of positive samples is 7000.&quot;
+Please modify the path to createsamples and its option parameters directly written in the file.</p>
+<p>The input format of createtrainsamples.pl is</p>
+<pre>$ perl createtrainsamples.pl &lt;positives.dat&gt; &lt;negatives.dat&gt; &lt;vec_output_dir&gt; [&lt;totalnum = 7000&gt;] [&lt;createsample_command_options = &quot;./createsamples -w 20 -h 20...&quot;&gt;]</pre>
+<p>And, the input format of mergevec is</p>
+<pre>$ mergevec &lt;collection_file_of_vecs&gt; &lt;output_vec_file_name&gt;</pre>
+<p>A collection file (a file containing list of filenames) can be generated as</p>
+<pre>$ find [dir_name] -name '*.[ext]' &gt; [collection_file_name]</pre>
+<p>Example)</p>
+<pre>$ cd HaarTraining/bin 
+$ find ../../data/negatives/ -name '*.jpg' &gt; negatives.dat
+$ find ../../data/umist_cropped/ -name '*.pgm' &gt; positives.dat
+
+$ perl createtrainsamples.pl positives.dat negatives.dat samples 7000 &quot;./createsamples  -bgcolor 0 -bgthresh 0 -maxxangle 1.1 -maxyangle 1.1 maxzangle 0.5 -maxidev 40 -w 20 -h 20&quot;
+$ find samples/ -name '*.vec' &gt; samples.dat # to create a collection file for vec files
+$ mergevec samples.dat samples.vec
+$ # createsamples -vec samples.vec -show -w 20 -h 20 # Extra: If you want to see inside</pre>
+<p>Kuranov et. al. [3] states as 20x20 of sample size achieved the highest hit rate. Furthermore, they states as &quot;For 18x18 four split nodes performed best, while for 20x20 two nodes were slightly better. Thus, -w 20 -h 20 would be good.</p>
+
+<h3 id="h3_content_1_14">Create Testing Samples  <a class="anchor_super" id="p0f55d5f"></a></h3>
+<p>Testing samples are images which include positives in negative background images and locations of positives are known in the images.
+It is possible to create such testing images by hand.
+We can also use the 3rd function of createsamples to synthesize such images.
+But, we can specify only one image using it, thus, creating a script to  repeat the procedure would help us. The script is available at <a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/bin/createtestsamples.pl" rel="nofollow">svn:createtestsamples.pl<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/bin/createtestsamples.pl', '_blank');" /></a><a class="anchor" id="createtestsamples"></a>.
+Please modify the path to createsamples and its option parameters directly in the file.</p>
+<p>The input format of the createtestsamples.pl is as</p>
+<pre>$ perl createtestsamples.pl &lt;positives.dat&gt; &lt;negatives.dat&gt; &lt;output_dir&gt; [&lt;totalnum = 1000&gt;] [&lt;createsample_command_options = &quot;./createsamples -w 20 -h 20...&quot;&gt;]</pre>
+<p>This generates lots of jpg files and info.dat in the &lt;output_dir&gt;.
+The jpg file name format is as &lt;number&gt;_&lt;x&gt;_&lt;y&gt;_&lt;width&gt;_&lt;height&gt;.jpg, where x, y, width and height are the coordinates of placed object bounding rectangle.</p>
+<p>Example)</p>
+<pre>$ # cd HaarTraining/bin 
+$ # find ../../data/negatives/ -name '*.jpg' &gt; negatives.dat 
+$ # find ../../data/umist_cropped/ -name '*.pgm' &gt; positives.dat
+$ perl createtestsamples.pl positives.dat negatives.dat tests 1000 &quot;./createsamples -bgcolor 0 -bgthresh 0 -maxxangle 1.1 -maxyangle 1.1 -maxzangle 0.5 maxidev 40&quot;
+$ find tests/ -name 'info.dat' -exec cat \{\} \; &gt; tests.dat # merge info files</pre>
+
+<h2 id="h2_content_1_15">Training  <a class="anchor_super" id="q16bb608"></a></h2>
+
+<h3 id="h3_content_1_16">Haar Training  <a class="anchor_super" id="x15ebd98"></a></h3>
+<p>Now, we train our own classifier using the haartraining utility.
+Here is the usage of the haartraining.</p>
+<pre>Usage: ./haartraining
+  -data &lt;dir_name&gt;
+  -vec &lt;vec_file_name&gt;
+  -bg &lt;background_file_name&gt;
+  [-npos &lt;number_of_positive_samples = 2000&gt;]
+  [-nneg &lt;number_of_negative_samples = 2000&gt;]
+  [-nstages &lt;number_of_stages = 14&gt;]
+  [-nsplits &lt;number_of_splits = 1&gt;]
+  [-mem &lt;memory_in_MB = 200&gt;]
+  [-sym (default)] [-nonsym]
+  [-minhitrate &lt;min_hit_rate = 0.995000&gt;]
+  [-maxfalsealarm &lt;max_false_alarm_rate = 0.500000&gt;]
+  [-weighttrimming &lt;weight_trimming = 0.950000&gt;]
+  [-eqw]
+  [-mode &lt;BASIC (default) | CORE | ALL&gt;]
+  [-w &lt;sample_width = 24&gt;]
+  [-h &lt;sample_height = 24&gt;]
+  [-bt &lt;DAB | RAB | LB | GAB (default)&gt;]
+  [-err &lt;misclass (default) | gini | entropy&gt;]
+  [-maxtreesplits &lt;max_number_of_splits_in_tree_cascade = 0&gt;]
+  [-minpos &lt;min_number_of_positive_samples_per_cluster = 500&gt;]
+</pre>
+<p>Kuranov et. al. <a href="#Kuranov">[3</a>] states as 20x20 of sample size achieved the highest hit rate.
+Furthermore, they states as &quot;For 18x18 four split nodes performed best, while for 20x20 two nodes were slightly better. The difference between weak tree classifiers with 2, 3 or 4 split nodes is smaller than their superiority with respect to stumps.&quot;</p>
+<p>Furthermore, there was a description as &quot;20 stages were trained. Assuming that
+my test set is representative for the learning task, I can expect a false alarm rate about <span class="mimetex"><img src="/pukiwiki/../pukiwiki/cache/942ca29b86249e768ff14c9da5f91229.mimetex.gif" alt="0.5^{20} \approx 9.6e-07" /></span> and a hit rate about <span class="mimetex"><img src="/pukiwiki/../pukiwiki/cache/2a438b0e48e56f317754ed25ceeeccce.mimetex.gif" alt="0.999^{20} \approx 0.98" /></span>.&quot;</p>
+<p>Therefore, use of 20x20 of sample size with nsplit = 2, nstages = 20, minhitrate = 0.9999 (default: 0.995), maxfalselarm = 0.5 (default: 0.5), and weighttrimming = 0.95 (default: 0.95) would be good such as</p>
+<pre>$ haartraining -data haarcascade -vec samples.vec -bg negatives.dat -nstages 20 -nsplits 2 -minhitrate 0.999 -maxfalsealarm 0.5 -npos 7000 -nneg 3019 -w 20 -h 20 -nonsym -mem 512 -mode ALL</pre>
+<p>The &quot;-nonsym&quot; option is used when the object class does not have vertical (left-right) symmetry. If object class has vertical symmetry such as frontal faces, &quot;-sym (default)&quot; should be used. It will speed up processing because it will use only the half (the centered and either of the left-sided or the right-sided) haar-like features.</p>
+<p>The &quot;-mode ALL&quot; uses Extended Sets of Haar-like Features <a href="#Lienhart">[2</a>]. Default is BASIC and it uses only upright features, while ALL uses the full set of upright and 45 degree rotated feature set <a href="#Tutorial">[1</a>].</p>
+<p>The &quot;-mem 512&quot; is the available memory in MB for precalculation <a href="#Tutorial">[1</a>]. Default is 200MB, so increase if more memory is available. We should not specify all system RAM because this number is only for precalculation, not for all.
+The maximum possible number to be specified would be 2GB because there is a limit of 4GB on the 32bit CPU (2^32 ≒ 4GB), and it becomes 2GB on Windows (kernel reserves 1GB and windows does something more).</p>
+<p>There are other options that <a href="#Tutorial">[1</a>] does not list such as</p>
+<pre> [-bt &lt;DAB | RAB | LB | GAB (default)&gt;]
+ [-err &lt;misclass (default) | gini | entropy&gt;]
+ [-maxtreesplits &lt;max_number_of_splits_in_tree_cascade = 0&gt;]
+ [-minpos &lt;min_number_of_positive_samples_per_cluster = 500&gt;]</pre>
+<p>Please see my modified version of haartraining document <a href="#Modified">[5</a>] for details.</p>
+<p>#Even if you increase the number of stages, the training may finish in an intermediate stage when it exceeded your desired minimum hit rate or false alarm because more cascading will decrease these rate for sure (0.99 until current * 0.99 next = 0.9801 until next). Or, the training may finish because all samples were rejected. In the case, you must increase number of training samples.</p>
+<p>#You can use OpenMP (multi-processing) with compilers such as Intel C++ compiler and MS Visual Studio 2005 Professional Edition or better. See <a href="#s6247634">How to enable OpenMP</a> section.</p>
+<p>#One training took three days.</p>
+
+<h3 id="h3_content_1_17">Generate a XML File  <a class="anchor_super" id="n43ec47f"></a></h3>
+<p>The haartraing generates a xml file when the process is completely finished (from OpenCV beta5).</p>
+<p>If you want to convert an intermediate haartraining output dir tree data into a xml file, there is a software at the OpenCV/samples/c/convert_cascade.c (that is, in your installation directory). Compile it.</p>
+<p>The input format is as</p>
+<pre>$ convert_cascade --size=&quot;&lt;sample_width&gt;x&lt;sampe_height&gt;&quot; &lt;haartraining_ouput_dir&gt; &lt;ouput_file&gt;</pre>
+<p>Example)</p>
+<pre>$ convert_cascade --size=&quot;20x20&quot; haarcascade haarcascade.xml</pre>
+
+<h2 id="h2_content_1_18">Testing  <a class="anchor_super" id="l8e2f850"></a></h2>
+
+<h3 id="h3_content_1_19">Performance Evaluation  <a class="anchor_super" id="mda65705"></a></h3>
+<p>We can evaluate the performance of the generated classifier using the performance utility. Here is the usage of the performance utility.</p>
+<pre>Usage: ./performance
+  -data &lt;classifier_directory_name&gt;
+  -info &lt;collection_file_name&gt;
+  [-maxSizeDiff &lt;max_size_difference = 1.500000&gt;]
+  [-maxPosDiff &lt;max_position_difference = 0.300000&gt;]
+  [-sf &lt;scale_factor = 1.200000&gt;]
+  [-ni]
+  [-nos &lt;number_of_stages = -1&gt;]
+  [-rs &lt;roc_size = 40&gt;]
+  [-w &lt;sample_width = 24&gt;]
+  [-h &lt;sample_height = 24&gt;]
+</pre>
+<p>Please see my modified version of haartraining document <a href="#Modified">[5</a>] for details of options.</p>
+<p>I cite how the performance utility works here:</p>
+<blockquote><p class="quotation">During detection, a sliding window was moved pixel by pixel over the picture at each scale. Starting with the original scale, the features were enlarged by 10% and 20%, respectively (i.e., representing a rescale factor of 1.1 and 1.2, respectively) until exceeding the size of the picture in at least one dimension. Often multiple faces are detect at near by location and scale at an actual face location. Therefore, multiple nearby detection results were merged. Receiver Operating Curves (ROCs) were constructed by varying the required number of detected faces per actual face before merging into a single detection result. During experimentation only one parameter was changed at a time. The best mode of a parameter found in an experiment was used for the subsequent experiments. <a href="#Kuranov">[3</a>]</p></blockquote>
+<p>Execute the performance utility as</p>
+<pre>$ performance -data haarcascade -w 20 -h 20 -info tests.dat -ni
+or
+$ performance -data haarcascade.xml -info tests.dat -ni</pre>
+<p>Be careful that you have to tell the size of training samples when you specify the classifier directory although the classifier xml file includes the information inside <a id="notetext_2" href="#notefoot_2" class="note_super" title="The performance ...">*2</a>.</p>
+<p><strong>-ni</strong> option suppresses to create resulted image files of detection.
+As default, the performance utility creates the resulted image files of detection and stores them into directories that a prefix 'det-' is added to test image directories.
+When you want to use this function, you have to create destination directories beforehand by yourself. Execute next command to create destination directories</p>
+<pre>$ cat tests.dat | perl -pe 's!^(.*)/.*$!det-$1!g' | xargs mkdir -p</pre>
+<p>where tests.dat is the collection file for testing images which you created at the step of createtestsamples.pl. Now you can execute the performance utility without '-ni' option.</p>
+<p>An output of the performance utility is as follows:</p>
+<pre>+================================+======+======+======+
+|            File Name           | Hits |Missed| False|
++================================+======+======+======+
+|tests/01/img01.bmp/0001_0153_005|     0|     1|     0|
++--------------------------------+------+------+------+
+....
++--------------------------------+------+------+------+
+|                           Total|   874|   554|    72|
++================================+======+======+======+
+Number of stages: 15
+Number of weak classifiers: 68
+Total time: 115.000000
+15
+        874     72      0.612045        0.050420
+        874     72      0.612045        0.050420
+        360     2       0.252101        0.001401
+        115     0       0.080532        0.000000
+        26      0       0.018207        0.000000
+        8       0       0.005602        0.000000
+        4       0       0.002801        0.000000
+        1       0       0.000700        0.000000
+        ....
+</pre>
+<p>'Hits' shows the number of correct detections. 'Missed' shows the number of missed detections or false negatives (Truly there exists, but the detector missed to detect it). 'False' shows the number of false alarms or false positives (Truly there does not exist, but the detector alarmed as there exists.)</p>
+<p>The latter table is for ROC plot. Please see my modified version of haartraining document <a href="#Modified">[5</a>] for more.</p>
+
+<h3 id="h3_content_1_20">Fun with a USB camera  <a class="anchor_super" id="be40b3c1"></a></h3>
+<p>Fun with a USB camera or some image files with the facedetect utility.</p>
+<pre>$ facedetect --cascade=&lt;xml_file&gt; [filename(image or video)|camera_index]</pre>
+<p>I modified facedetect.c slightly because the facedetect utility did not work in the same manner with the performance utility. I added options to change parameters on command line. The source code is available at the <a href="#v6f077ba">Download</a> section (or direct link <a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src/facedetect.c" rel="nofollow">facedetect.c<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src/facedetect.c', '_blank');" /></a>). Now the usage is as follows:</p>
+<pre>Usage: facedetect  --cascade=&quot;&lt;cascade_xml_path&gt;&quot; or -c &lt;cascade_xml_path&gt;
+  [ -sf &lt; scale_factor = 1.100000 &gt; ]
+  [ -mn &lt; min_neighbors = 1 &gt; ]
+  [ -fl &lt; flags = 0 &gt; ]
+  [ -ms &lt; min_size = 0 0 &gt; ]
+  [ filename | camera_index = 0 ]
+See also: cvHaarDetectObjects() about option parameters.
+</pre>
+<p>FYI: The original facedetect.c used min_neighbors = 2 although performance.cpp uses min_neighbors = 1. It affected face detection results considerably.</p>
+
+<h2 id="h2_content_1_21">Experiments  <a class="anchor_super" id="w0010b88"></a></h2>
+
+<h3 id="h3_content_1_22">PIE Expeirment 1  <a class="anchor_super" id="kd04ae8f"></a></h3>
+<p>The PIE dataset has only frontal faces with big illumination variations.
+The dataset used in PIE experiments looks as follows:</p>
+<div class="ie5"><table class="style_table" cellspacing="1" border="0"><tbody><tr><td class="style_td"><a href="http://note.sonots.com/?plugin=attach&amp;refer=SciSoftware%2Fhaartraining&amp;openfile=img01_01.png" title="img01_01.png"><img src="http://note.sonots.com/?plugin=ref&amp;page=SciSoftware%2Fhaartraining&amp;src=img01_01.png" alt="img01_01.png" title="img01_01.png" width="40" height="48" /></a></td><td class="style_td"><a href="http://note.sonots.com/?plugin=attach&amp;refer=SciSoftware%2Fhaartraining&amp;openfile=img01_10.png" title="img01_10.png"><img src="http://note.sonots.com/?plugin=ref&amp;page=SciSoftware%2Fhaartraining&amp;src=img01_10.png" alt="img01_10.png" title="img01_10.png" width="40" height="48" /></a></td><td class="style_td"><a href="http://note.sonots.com/?plugin=attach&amp;refer=SciSoftware%2Fhaartraining&amp;openfile=img01_21.png" title="img01_21.png"><img src="http://note.sonots.com/?plugin=ref&amp;page=SciSoftware%2Fhaartraining&amp;src=img01_21.png" alt="img01_21.png" title="img01_21.png" width="40" height="48" /></a></td></tr><tr><td class="style_td">1st</td><td class="style_td">10th</td><td class="style_td">21st</td></tr></tbody></table></div>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li>List of Commands <a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie1.sh" rel="nofollow">haarcascade_frontalface_pie1.sh<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie1.sh', '_blank');" /></a>.
+<ul class="list2" style="padding-left:0px;margin-left:15px"><li>I used -w 18 -h 20 because the original images were not square but rectangle with ratio about 18:20. I applied little distortions on this experiment.</li>
+<li>The training took 3 days on Intel Xeon 2GHz with 1GB memory machine.</li></ul></li>
+<li>Performance Evaluation with pie_test (synthesize tests) <a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie1.performance_pie_tests.txt" rel="nofollow">haarcascade_frontalface_pie1.performance_pie_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie1.performance_pie_tests.txt', '_blank');" /></a>
+<pre>+================================+======+======+======+
+|            File Name           | Hits |Missed| False|
++================================+======+======+======+
+|                           Total|   847|   581|    67|
++================================+======+======+======+
+Number of stages: 16
+Number of weak classifiers: 113
+Total time: 123.000000
+16
+        847     67      0.593137        0.046919
+        847     67      0.593137        0.046919
+        353     2       0.247199        0.001401
+        110     0       0.077031        0.000000
+        15      0       0.010504        0.000000
+        1       0       0.000700        0.000000
+</pre></li>
+<li>Performance evaluation with cmu_tests (natural tests)
+<a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie1.performance_cmu_tests.txt" rel="nofollow">haarcascade_frontalface_pie1.performance_cmu_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie1.performance_cmu_tests.txt', '_blank');" /></a>
+<pre>+================================+======+======+======+
+|            File Name           | Hits |Missed| False|
++================================+======+======+======+
+|                           Total|    20|   491|     9|
++================================+======+======+======+
+Number of stages: 16
+Number of weak classifiers: 113
+Total time: 5.830000
+16
+	20	9	0.039139	0.017613
+	20	9	0.039139	0.017613
+	2	0	0.003914	0.000000
+</pre></li></ul>
+
+<h3 id="h3_content_1_23">PIE Experiment 2  <a class="anchor_super" id="dec1283e"></a></h3>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie2.sh" rel="nofollow">haarcascade_frontalface_pie2.sh<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie2.sh', '_blank');" /></a>.
+<ul class="list2" style="padding-left:0px;margin-left:15px"><li>Tried -nonsym option</li>
+<li>The training took 3 days on Intel Xeon 3GHz with 1GB memory machine.</li></ul></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie2.performance_pie_tests.txt" rel="nofollow">haarcascade_frontalface_pie2.performance_pie_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie2.performance_pie_tests.txt', '_blank');" /></a>
+<pre>|                           Total|   777|   651|    53|</pre></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie2.performance_cmu_tests.txt" rel="nofollow">haarcascade_frontalface_pie2.performance_cmu_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie2.performance_cmu_tests.txt', '_blank');" /></a>
+<pre>|                           Total|    12|   499|     3|</pre></li></ul>
+
+<h3 id="h3_content_1_24">PIE Experiment 3  <a class="anchor_super" id="tbc650a5"></a></h3>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie3.sh" rel="nofollow">haarcascade_frontalface_pie3.sh<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie3.sh', '_blank');" /></a>.
+<ul class="list2" style="padding-left:0px;margin-left:15px"><li>Increased number of training samples from 7000 to 10000. Still -nonsym</li>
+<li>The training took 4 days on Intel Xeon 2GHz with 1GB memory machine.</li>
+<li>This was the best among PIE experiments</li></ul></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie3.performance_pie_tests.txt" rel="nofollow">haarcascade_frontalface_pie3.performance_pie_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie3.performance_pie_tests.txt', '_blank');" /></a>
+<pre>|                           Total|   874|   554|    72|</pre></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie3.performance_cmu_tests.txt" rel="nofollow">haarcascade_frontalface_pie3.performance_cmu_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie3.performance_cmu_tests.txt', '_blank');" /></a>
+<pre>|                           Total|    12|   499|    15|</pre></li></ul>
+
+<h3 id="h3_content_1_25">PIE Experiment 4  <a class="anchor_super" id="j453296d"></a></h3>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie4.sh" rel="nofollow">haarcascade_frontalface_pie4.sh<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie4.sh', '_blank');" /></a>.
+<ul class="list2" style="padding-left:0px;margin-left:15px"><li>Tried to change -minhitrate from 0.999 to 0.995</li>
+<li>The training took 5 days on Intel Xeon 3GHz with 1GB memory machine.</li></ul></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie4.performance_pie_tests.txt" rel="nofollow">haarcascade_frontalface_pie4.performance_pie_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie4.performance_pie_tests.txt', '_blank');" /></a>
+<pre>|                           Total|   527|   901|    27|</pre></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie4.performance_cmu_tests.txt" rel="nofollow">haarcascade_frontalface_pie4.performance_cmu_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie4.performance_cmu_tests.txt', '_blank');" /></a>
+<pre>|                           Total|     3|   508|     1|</pre></li></ul>
+
+<h3 id="h3_content_1_26">PIE Experiment 5  <a class="anchor_super" id="h04cc8f8"></a></h3>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie5.sh" rel="nofollow">haarcascade_frontalface_pie5.sh<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie5.sh', '_blank');" /></a>.
+<ul class="list2" style="padding-left:0px;margin-left:15px"><li>-sym for experiment 3</li>
+<li>The training took 4 days on Intel Xeon 2GHz with 1GB memory machine.</li></ul></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie5.performance_pie_tests.txt" rel="nofollow">haarcascade_frontalface_pie5.performance_pie_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie5.performance_pie_tests.txt', '_blank');" /></a>
+<pre>|                           Total|   737|   691|    46|</pre></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie5.performance_cmu_tests.txt" rel="nofollow">haarcascade_frontalface_pie5.performance_cmu_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie5.performance_cmu_tests.txt', '_blank');" /></a>
+<pre>|                           Total|    10|   501|     6|</pre></li></ul>
+
+<h3 id="h3_content_1_27">PIE Experiment 6  <a class="anchor_super" id="j1d5e509"></a></h3>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie5.sh" rel="nofollow">haarcascade_frontalface_pie5.sh<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie5.sh', '_blank');" /></a>.
+<ul class="list2" style="padding-left:0px;margin-left:15px"><li>-maxtreesplits 4</li>
+<li>The training took 3 weeks</li></ul></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie5.performance_pie_tests.txt" rel="nofollow">haarcascade_frontalface_pie5.performance_pie_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie5.performance_pie_tests.txt', '_blank');" /></a>
+<pre>|                           Total|   766|   662|    45|</pre></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie5.performance_cmu_tests.txt" rel="nofollow">haarcascade_frontalface_pie5.performance_cmu_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_pie5.performance_cmu_tests.txt', '_blank');" /></a>
+<pre>|                           Total|     8|   503|     7|</pre></li></ul>
+
+<h3 id="h3_content_1_28">UMIST Experiment 1  <a class="anchor_super" id="p11ee6e0"></a></h3>
+<p>The UMIST is a multi-view face dataset.</p>
+<div class="ie5"><table class="style_table" cellspacing="1" border="0"><tbody><tr><td class="style_td"><a href="http://note.sonots.com/?plugin=attach&amp;refer=SciSoftware%2Fhaartraining&amp;openfile=1a000.png" title="1a000.png"><img src="http://note.sonots.com/?plugin=ref&amp;page=SciSoftware%2Fhaartraining&amp;src=1a000.png" alt="1a000.png" title="1a000.png" width="92" height="112" /></a></td><td class="style_td"><a href="http://note.sonots.com/?plugin=attach&amp;refer=SciSoftware%2Fhaartraining&amp;openfile=1a021.png" title="1a021.png"><img src="http://note.sonots.com/?plugin=ref&amp;page=SciSoftware%2Fhaartraining&amp;src=1a021.png" alt="1a021.png" title="1a021.png" width="92" height="112" /></a></td><td class="style_td"><a href="http://note.sonots.com/?plugin=attach&amp;refer=SciSoftware%2Fhaartraining&amp;openfile=1a033.png" title="1a033.png"><img src="http://note.sonots.com/?plugin=ref&amp;page=SciSoftware%2Fhaartraining&amp;src=1a033.png" alt="1a033.png" title="1a033.png" width="92" height="112" /></a></td></tr><tr><td class="style_td">0th frame</td><td class="style_td">21st frame</td><td class="style_td">33rd frame</td></tr></tbody></table></div>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_profileface_umist1.sh" rel="nofollow">haarcascade_profileface_umist1.sh<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_profileface_umist1.sh', '_blank');" /></a>
+<ul class="list2" style="padding-left:0px;margin-left:15px"><li>-w 18 -h 22</li>
+<li>-sym generate flipped images in left-right, thus, -sym helps for profile face too</li>
+<li>took 5 days</li></ul></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_profileface_umist1.performance_umist_tests.txt" rel="nofollow">haarcascade_profileface_umist1.performance_umist_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_profileface_umist1.performance_umist_tests.txt', '_blank');" /></a>
+<pre>|                           Total|    96|  1054|    13|</pre></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_profileface_umist1.performance_cmu_tests.txt" rel="nofollow">haarcascade_profileface_umist1.performance_cmu_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_profileface_umist1.performance_cmu_tests.txt', '_blank');" /></a>
+<pre>|                           Total|     0|   511|     5|</pre></li></ul>
+
+<h3 id="h3_content_1_29">UMIST Experiment 2  <a class="anchor_super" id="ldcb43c5"></a></h3>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_profileface_umist2.sh" rel="nofollow">haarcascade_profileface_umist2.sh<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_profileface_umist2.sh', '_blank');" /></a>
+<ul class="list2" style="padding-left:0px;margin-left:15px"><li>-maxtreesplits 4</li>
+<li>training took 2 weeks</li></ul></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_profileface_umist2.performance_umist_tests.txt" rel="nofollow">haarcascade_profileface_umist2.performance_umist_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_profileface_umist2.performance_umist_tests.txt', '_blank');" /></a>
+<pre>|                           Total|   734|   416|   276|</pre></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_profileface_umist2.performance_cmu_tests.txt" rel="nofollow">haarcascade_profileface_umist2.performance_cmu_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_profileface_umist2.performance_cmu_tests.txt', '_blank');" /></a>
+<pre>|                           Total|     1|   510|    57|</pre></li></ul>
+
+<h3 id="h3_content_1_30">CBCL Experiment 1  <a class="anchor_super" id="f6508528"></a></h3>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_cbcl1.sh" rel="nofollow">haarcascade_frontalface_cbcl1.sh<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_cbcl1.sh', '_blank');" /></a>
+<ul class="list2" style="padding-left:0px;margin-left:15px"><li>-maxtreesplits 4</li>
+<li>The training took 5 weeks</li></ul></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_cbcl1.performance_cbcl_tests.txt" rel="nofollow">haarcascade_frontalface_cbcl1.performance_cbcl_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_cbcl1.performance_cbcl_tests.txt', '_blank');" /></a>
+<pre>|                           Total|   306|   694|    20|</pre></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_cbcl1.performance_cmu_tests.txt" rel="nofollow">haarcascade_frontalface_cbcl1.performance_cmu_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_cbcl1.performance_cmu_tests.txt', '_blank');" /></a>
+<pre>|                           Total|   127|   384|     7|</pre></li></ul>
+
+<h3 id="h3_content_1_31">haarcascade_frontalface_alt2.xml  <a class="anchor_super" id="l7a173e3"></a></h3>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_alt2.performance_pie_tests.txt" rel="nofollow">haarcascade_frontalface_alt2.performance_pie_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_alt2.performance_pie_tests.txt', '_blank');" /></a>
+<pre>|                           Total|   820|   608|  2099|</pre></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_alt2.performance_umist_tests.txt" rel="nofollow">haarcascade_frontalface_alt2.performance_umist_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_alt2.performance_umist_tests.txt', '_blank');" /></a>
+<pre>|                           Total|   263|   887|  1839|</pre></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_alt2.performance_cbcl_tests.txt" rel="nofollow">haarcascade_frontalface_alt2.performance_cbcl_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_alt2.performance_cbcl_tests.txt', '_blank');" /></a>
+<pre>|                           Total|   109|   891|  1490|</pre></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_alt2.performance_cmu_tests.txt" rel="nofollow">haarcascade_frontalface_alt2.performance_cmu_tests.txt<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/haarcascade_frontalface_alt2.performance_cmu_tests.txt', '_blank');" /></a>
+<pre>|                           Total|   274|   237|   534|</pre></li></ul>
+
+<h2 id="h2_content_1_32">Discussion  <a class="anchor_super" id="t334b6aa"></a></h2>
+<p>The created detectors outperformed the opencv default xml in terms of synthesized test samples created from training samples. This shows that the training was successfully performed.
+However, the detector did not work well in general test samples.
+This might mean that the detector was over-trained or over-fitted to the specific training samples.
+I still don't know good parameters or training samples to generalize detectors well.</p>
+<p>False alarm rates of all of my generated detectors were pretty low compared with the opencv default detector. I don't know which parameters are especially different.
+I set false alarm rate with 0.5 and this makes sense theoretically. I don't know.</p>
+<p>Training illumination varying faces in one detector resulted in pretty poor.
+The generated detector became sensitive to illumination rather than robust to illumination.
+This detector does not detect non-illuminated normal frontal faces.
+This makes sense because normal frontal faces did not exist in training sets so many.
+Training multi-view faces in one time resulted in the same thing.</p>
+<p>We should train different detectors for each face pose or illumination state to construct a multi-view or illumination varied face detector as <a class="ext" href="http://www.merl.com/publications/TR2003-096/" rel="nofollow">Fast Multi-view Face Detection<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://www.merl.com/publications/TR2003-096/', '_blank');" /></a>.
+Viola and Jones extended their work for multi-view by training 12 separated face poses detectors.
+To achieve rapidness, they further constructed a pose estimator by C4.5 decision tree re-using the haar-like features, they further cascaded the pose estimator and face detector (Of course, this means that if pose estimation fails, the face detection also fails).</p>
+<p><strong>Theory behind</strong></p>
+<p>The advantage of the haar-like features is the rapidness in detection phase, not accuracy. We of course can construct another face detector which achieves better accuracy using, e.g., PCA or LDA although it becomes slow in detection phase.
+Use such features when you do not require rapidness.
+PCA does not require to train AdaBoost, so training phase would quickly finish.
+I am pretty sure that there exist such face detection method already although I did not search (I do not search because I am sure).</p>
+
+<h2 id="h2_content_1_33">Download  <a class="anchor_super" id="v6f077ba"></a></h2>
+<p>The files are available at <a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/" rel="nofollow">http://tutorial-haartraining.googlecode.com/svn/trunk/<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/', '_blank');" /></a> (<a class="ext" href="http://opensvn.csie.org/sonots/SciSoftware/haartraining/" rel="nofollow">old repository<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://opensvn.csie.org/sonots/SciSoftware/haartraining/', '_blank');" /></a>)</p>
+<p>Directory Tree</p>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/" rel="nofollow">HaarTraining<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/', '_blank');" /></a> haartraining
+<ul class="list2" style="padding-left:0px;margin-left:15px"><li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src" rel="nofollow">src<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src', '_blank');" /></a> Source Code, haartraining and my additional c++ source codes are at here.</li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src/Makefile" rel="nofollow">src/Makefile<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src/Makefile', '_blank');" /></a> Makefile for Linux, please read comments inside</li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/bin" rel="nofollow">bin<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/bin', '_blank');" /></a> Binaries for Windows are ready, my perl scripts are also at here. This directory would be a working directory.</li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/make" rel="nofollow">make<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/make', '_blank');" /></a> Visual Studio Project Files</li></ul></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/data/" rel="nofollow">data<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/data/', '_blank');" /></a>
+The collected Image Datasets</li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/result/" rel="nofollow">result<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/result/', '_blank');" /></a>
+Generated Files (vec and xml etc) and results</li></ul>
+<p>This is a svn repository, so you can download files at burst if you have a svn client (you should have it on cygwin or Linux). For example,</p>
+<pre>$ svn co http://tutorial-haartraining.googlecode.com/svn/trunk/ tutorial-haartraining</pre>
+<p>Sorry, but downloading (checkout) image datasets may take forever.... I created a zip file once, but google code repository did not allow me to upload such a big file (100MB). I recommend you to check out only the HaarTraining directory first as</p>
+<pre>$ svn co http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/ HaarTraining</pre>
+<p>Here, the list of my additional utilities (I put them in HaarTraining/src and HaarTraining/bin directory):</p>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src/mergevec.cpp" rel="nofollow">mergevec.cpp<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src/mergevec.cpp', '_blank');" /></a>  <a href="#mergevec">&dagger;</a> - <a href="http://note.sonots.com/SciSoftware/haartraining/mergevec.cpp.html" title="SciSoftware/haartraining/mergevec.cpp (1773d)">Further Details (How to Use, Compile)</a></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src/vec2img.cpp" rel="nofollow">vec2img.cpp<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src/vec2img.cpp', '_blank');" /></a> - <a href="http://note.sonots.com/SciSoftware/haartraining/vec2img.cpp.html" title="SciSoftware/haartraining/vec2img.cpp (1321d)">Further Details (How to Use, Compile)</a></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/bin/createtrainsamples.pl" rel="nofollow">createtrainsamples.pl<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/bin/createtrainsamples.pl', '_blank');" /></a> <a href="#createtrainsamples">&dagger;</a></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/bin/createtestsamples.pl" rel="nofollow">createtestsamples.pl<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/bin/createtestsamples.pl', '_blank');" /></a> <a href="#createtestsamples">&dagger;</a></li></ul>
+<p>The following additional utilities can be obtained from OpenCV/samples/c in your OpenCV install directory (I also put them in HaarTraining/src directory).</p>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src/convert_cascade.c" rel="nofollow">convert_cascade.c<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src/convert_cascade.c', '_blank');" /></a></li>
+<li><a class="ext" href="http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src/facedetect.c" rel="nofollow">facedetect.c<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://tutorial-haartraining.googlecode.com/svn/trunk/HaarTraining/src/facedetect.c', '_blank');" /></a> This is my slightly modified version</li></ul>
+
+<h3 id="h3_content_1_34">How to enable OpenMP  <a class="anchor_super" id="s6247634"></a></h3>
+<p>I bundled windows binaries in the Download section, but I did not enable OpenMP (multi-processing) support. Therefore, I write how to compile the haartraining utility to use OpenMP with Visual Studio 2005 Professional Edition here based on my distribution files (The procedure should be same for the originals too, but I did not verify.)</p>
+<p>The solution file is in HaarTraining\make\haartraining.sln. Open it.</p>
+<p>Right click cvhaartraining project &gt; Properties. You will see a picture as below.</p>
+<div class="ie5"><table class="style_table" cellspacing="1" border="0"><tbody><tr><td class="style_td"><img src="http://note.sonots.com/?plugin=ref&amp;page=SciSoftware%2Fhaartraining&amp;src=beginopenmp2.gif" alt="beginopenmp2.gif" title="beginopenmp2.gif" width="637" height="443" /></td></tr><tr><td class="style_td">Reference <a class="ext" href="http://www.codeproject.com/KB/cpp/BeginOpenMP.aspx" rel="nofollow">http://www.codeproject.com/KB/cpp/BeginOpenMP.aspx<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://www.codeproject.com/KB/cpp/BeginOpenMP.aspx', '_blank');" /></a></td></tr></tbody></table></div>
+<p>Follow Configuration Properties &gt; C/C++ &gt; Language &gt; Change 'OpenMP Support' to 'Yes (/openmp)' as the above picture shows. If you can not see it, probably your environment does not support OpenMP.</p>
+<p>Build cvhaartraining only (Right click the project &gt; Project Only &gt; Rebuild only cvhaartraining) and do the same procedure (enable OpenMP) for haartraining project.
+Now, haartraining.exe should work with OpenMP.</p>
+<p>You may use <a class="ext" href="http://technet.microsoft.com/en-us/sysinternals/bb896653.aspx" rel="nofollow">Process Explorer<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://technet.microsoft.com/en-us/sysinternals/bb896653.aspx', '_blank');" /></a> to verify whether it is utilizing OpenMP or not.</p>
+<p>Run the Process Explorer &gt; View &gt; Show Lower Pane (Ctrl+L) &gt; choose 'haartraining.exe' process and see the Lower Pane. If you can see two threads not one thread, it is utilizing OpenMP.</p>
+
+<h2 id="h2_content_1_35">References  <a class="anchor_super" id="z5c89cdd"></a></h2>
+<ul class="list1" style="padding-left:0px;margin-left:20px"><li><a class="anchor" id="Tutorial"></a>[1]  <a href="http://note.sonots.com/SciSoftware/haartraining/document.html" title="SciSoftware/haartraining/document (1334d)">HaarTraining doc</a> This document can be obtained from OpenCV/apps/HaarTraining/doc on your OpenCV install directory</li>
+<li><a class="anchor" id="Lienhart"></a>[2] Rainer Lienhart and Jochen Maydt. An Extended Set of Haar-like Features for Rapid Object Detection. IEEE ICIP 2002, Vol. 1, pp. 900-903, Sep. 2002. <a class="ext" href="http://www.lienhart.de/ICIP2002.pdf" rel="nofollow">http://www.lienhart.de/ICIP2002.pdf<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://www.lienhart.de/ICIP2002.pdf', '_blank');" /></a></li>
+<li><a class="anchor" id="Kuranov"></a>[3] Alexander Kuranov, Rainer Lienhart, and Vadim Pisarevsky. An Empirical Analysis of Boosting Algorithms for Rapid Objects With an Extended Set of Haar-like Features. Intel Technical Report MRL-TR-July02-01, 2002. <a class="ext" href="http://www.lienhart.de/Publications/DAGM2003.pdf" rel="nofollow">http://www.lienhart.de/Publications/DAGM2003.pdf<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://www.lienhart.de/Publications/DAGM2003.pdf', '_blank');" /></a></li>
+<li><a class="anchor" id="Viola"></a>[4] Paul Viola and Michael J. Jones. Rapid Object Detection using a Boosted Cascade of Simple Features. IEEE CVPR, 2001. <a class="ext" href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.3.7597" rel="nofollow">http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.3.7597<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.3.7597', '_blank');" /></a></li>
+<li><a class="anchor" id="Modified"></a>[5] <a class="ext" href="http://docs.google.com/View?docID=drw35kw_6gr8r84fs" rel="nofollow">Modified HaarTraining doc<img src="/pukiwiki/image/plus/ext.png" alt="" title="" class="ext" onclick="return open_uri('http://docs.google.com/View?docID=drw35kw_6gr8r84fs', '_blank');" /></a> This is my modified version of <a href="#Tutorial">[1</a>]</li></ul>
+<div id="container"></div>
+<script type="text/javascript" src="http://del.icio.us/feeds/json/sonots/haartraining?count=100"></script>
+<script type="text/javascript">
+function showImage(img){ return (function(){ img.style.display='inline' }) }
+
+var ul = document.createElement('ul')
+for (var i=0, post; post = Delicious.posts[i]; i++) {
+	var li = document.createElement('li')
+	var a = document.createElement('a')
+	a.setAttribute('href', post.u)
+	a.appendChild(document.createTextNode(post.d))
+	li.appendChild(a)
+	if (post.n != undefined) {
+		var br = document.createElement('br')
+		li.insertBefore(br, null)
+		var span = document.createElement('span')
+		span.appendChild(document.createTextNode(post.n))
+		li.insertBefore(span, null)
+	}
+	ul.appendChild(li)
+}
+document.getElementById('container').appendChild(ul)
+</script>
+
+<hr class="note_hr" /><a id="notefoot_1" href="#notetext_1" class="note_super">*1</a>
+<span class="small">There was a choice to modify codes for the 2nd function to apply distortions and generate many images from one image, but I chose to write scripts to repeat the 1st function because the same method can be applied for creation of test samples too.</span><br />
+<a id="notefoot_2" href="#notetext_2" class="note_super">*2</a>
+<span class="small">The performance utility supports both classifier directory and haarcascade xml file, in details, cvLoadHaarClassifierCascade() function supports both</span><br />  </div>
+ </div>
+
+ <div id="footer">
+  <div style="display:none;"><a href="http://trackfeed.com/"><img name="trackfeed_banner"src="http://img.trackfeed.com/img/tfg.gif" alt="track feed" border="0" /></a><script type="text/javascript" src="http://script.trackfeed.com/usr/9ad8543e04.js"></script></div><div style="display:none;"><script type="text/javascript">var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));</script><script type="text/javascript">var pageTracker = _gat._getTracker("UA-105217-6");pageTracker._trackPageview();</script></div><div style="display:none;"><script type="text/javascript" src="http://x7.xxxxxxxx.jp/ufo/104624200"></script><noscript><img src="http://x7.xxxxxxxx.jp/bin/ll?104624200" /></noscript></div>  <p>
+      Powered by <a href="http://pukiwiki.cafelounge.net/plus/">PukiWiki Plus!</a> 
+   - Theme design by <a href="http://lsx.sourceforge.jp/index.php?Skin%2Fandreas01">Andreas01 for PukiWiki</a>
+   - <a href="http://note.sonots.com/edit.php?SciSoftware%2Fhaartraining">Admin</a>  </p>
+   </div>
+</div>
+</body>
+</html>

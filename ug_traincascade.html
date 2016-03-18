@@ -1,0 +1,561 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-33108845-1']);
+  _gaq.push(['_setDomainName', 'opencv.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Cascade Classifier Training &mdash; OpenCV 2.4.12.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.4.12.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="OpenCV 2.4.12.0 documentation" href="../../index.html" />
+    <link rel="up" title="OpenCV User Guide" href="user_guide.html" />
+    <link rel="next" title="Senz3D and Intel Perceptual Computing SDK" href="ug_intelperc.html" />
+    <link rel="prev" title="Kinect and OpenNI" href="ug_kinect.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="ug_intelperc.html" title="Senz3D and Intel Perceptual Computing SDK"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="ug_kinect.html" title="Kinect and OpenNI"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../../index.html">OpenCV 2.4.12.0 documentation</a> &raquo;</li>
+          <li><a href="user_guide.html" accesskey="U">OpenCV User Guide</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+  
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="cascade-classifier-training">
+<h1>Cascade Classifier Training<a class="headerlink" href="#cascade-classifier-training" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>The work with a cascade classifier includes two major stages: training and detection.
+Detection stage is described in a documentation of <tt class="docutils literal"><span class="pre">objdetect</span></tt> module of general OpenCV documentation. Documentation gives some basic information about cascade classifier.
+Current guide is describing how to train a cascade classifier: preparation of a training data and running the training application.</p>
+<div class="section" id="important-notes">
+<h3>Important notes<a class="headerlink" href="#important-notes" title="Permalink to this headline">¶</a></h3>
+<p>There are two applications in OpenCV to train cascade classifier: <tt class="docutils literal"><span class="pre">opencv_haartraining</span></tt> and <tt class="docutils literal"><span class="pre">opencv_traincascade</span></tt>. <tt class="docutils literal"><span class="pre">opencv_traincascade</span></tt> is a newer version, written in C++ in accordance to OpenCV 2.x API. But the main difference between this two applications is that <tt class="docutils literal"><span class="pre">opencv_traincascade</span></tt> supports both Haar <a class="reference internal" href="#viola2001" id="id1">[Viola2001]</a> and LBP <a class="reference internal" href="#liao2007" id="id2">[Liao2007]</a> (Local Binary Patterns) features. LBP features are integer in contrast to Haar features, so both training and detection with LBP are several times faster then with Haar features. Regarding the LBP and Haar detection quality, it depends on training: the quality of training dataset first of all and training parameters too. It&#8217;s possible to train a LBP-based classifier that will provide almost the same quality as Haar-based one.</p>
+<p><tt class="docutils literal"><span class="pre">opencv_traincascade</span></tt> and <tt class="docutils literal"><span class="pre">opencv_haartraining</span></tt> store the trained classifier in different file formats. Note, the newer cascade detection interface (see <tt class="docutils literal"><span class="pre">CascadeClassifier</span></tt> class in <tt class="docutils literal"><span class="pre">objdetect</span></tt> module) support both formats. <tt class="docutils literal"><span class="pre">opencv_traincascade</span></tt> can save (export) a trained cascade in the older format. But <tt class="docutils literal"><span class="pre">opencv_traincascade</span></tt> and <tt class="docutils literal"><span class="pre">opencv_haartraining</span></tt> can not load (import) a classifier in another format for the further training after interruption.</p>
+<p>Note that <tt class="docutils literal"><span class="pre">opencv_traincascade</span></tt> application can use TBB for multi-threading. To use it in multicore mode OpenCV must be built with TBB.</p>
+<p>Also there are some auxiliary utilities related to the training.</p>
+<blockquote>
+<div><ul class="simple">
+<li><tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> is used to prepare a training dataset of positive and test samples. <tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> produces dataset of positive samples in a format that is supported by both <tt class="docutils literal"><span class="pre">opencv_haartraining</span></tt> and <tt class="docutils literal"><span class="pre">opencv_traincascade</span></tt> applications. The output is a file with *.vec extension, it is a binary format which contains images.</li>
+<li><tt class="docutils literal"><span class="pre">opencv_performance</span></tt> may be used to evaluate the quality of classifiers, but for trained by <tt class="docutils literal"><span class="pre">opencv_haartraining</span></tt> only. It takes a collection of marked up images, runs the classifier and reports the performance, i.e. number of found objects, number of missed objects, number of false alarms and other information.</li>
+</ul>
+</div></blockquote>
+<p>Since <tt class="docutils literal"><span class="pre">opencv_haartraining</span></tt> is an obsolete application, only <tt class="docutils literal"><span class="pre">opencv_traincascade</span></tt> will be described further. <tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> utility is  needed to prepare a training data for <tt class="docutils literal"><span class="pre">opencv_traincascade</span></tt>, so it will be described too.</p>
+</div>
+</div>
+<div class="section" id="opencv-createsamples-utility">
+<h2><tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> utility<a class="headerlink" href="#opencv-createsamples-utility" title="Permalink to this headline">¶</a></h2>
+<p>An <tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> utility provides functionality for dataset generating, writing and viewing. The term <em>dataset</em> is used here for both training set and test set.</p>
+</div>
+<div class="section" id="training-data-preparation">
+<h2>Training data preparation<a class="headerlink" href="#training-data-preparation" title="Permalink to this headline">¶</a></h2>
+<p>For training we need a set of samples. There are two types of samples: negative and positive. Negative samples correspond to non-object images. Positive samples correspond to images with detected objects. Set of negative samples must be prepared manually, whereas set of positive samples is created using <tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> utility.</p>
+<div class="section" id="negative-samples">
+<h3>Negative Samples<a class="headerlink" href="#negative-samples" title="Permalink to this headline">¶</a></h3>
+<p>Negative samples are taken from arbitrary images. These images must not contain detected objects. Negative samples are enumerated in a special file. It is a text file in which each line contains an image filename (relative to the directory of the description file) of negative sample image. This file must be created manually. Note that negative samples and sample images are also called background samples or background samples images, and are used interchangeably in this document. Described images may be of different sizes. But each image should be (but not necessarily) larger then a training window size, because these images are used to subsample negative image to the training size.</p>
+<p>An example of description file:</p>
+<p>Directory structure:</p>
+<blockquote>
+<div><div class="highlight-text"><div class="highlight"><pre>/img
+  img1.jpg
+  img2.jpg
+bg.txt
+</pre></div>
+</div>
+</div></blockquote>
+<p>File bg.txt:</p>
+<blockquote>
+<div><div class="highlight-text"><div class="highlight"><pre>img/img1.jpg
+img/img2.jpg
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="positive-samples">
+<h3>Positive Samples<a class="headerlink" href="#positive-samples" title="Permalink to this headline">¶</a></h3>
+<p>Positive samples are created by <tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> utility. They may be created from a single image with object or from a collection of previously marked up images.</p>
+<p>Please note that you need a large dataset of positive samples before you give it to the mentioned utility, because it only applies perspective transformation. For example you may need only one positive sample for absolutely rigid object like an OpenCV logo, but you definitely need hundreds and even thousands of positive samples for faces. In the case of faces you should consider all the race and age groups, emotions and perhaps beard styles.</p>
+<p>So, a single object image may contain a company logo. Then a large set of positive samples is created from the given object image by random rotating, changing the logo intensity as well as placing the logo on arbitrary background. The amount and range of randomness can be controlled by command line arguments of <tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> utility.</p>
+<p>Command line arguments:</p>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-vec</span> <span class="pre">&lt;vec_file_name&gt;</span></tt></p>
+<blockquote>
+<div><p>Name of the output file containing the positive samples for training.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-img</span> <span class="pre">&lt;image_file_name&gt;</span></tt></p>
+<blockquote>
+<div><p>Source object image (e.g., a company logo).</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-bg</span> <span class="pre">&lt;background_file_name&gt;</span></tt></p>
+<blockquote>
+<div><p>Background description file; contains a list of images which are used as a background for randomly distorted versions of the object.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-num</span> <span class="pre">&lt;number_of_samples&gt;</span></tt></p>
+<blockquote>
+<div><p>Number of positive samples to generate.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-bgcolor</span> <span class="pre">&lt;background_color&gt;</span></tt></p>
+<blockquote>
+<div><p>Background color (currently grayscale images are assumed); the background color denotes the transparent color. Since there might be compression artifacts, the amount of color tolerance can be specified by <tt class="docutils literal"><span class="pre">-bgthresh</span></tt>. All pixels withing <tt class="docutils literal"><span class="pre">bgcolor-bgthresh</span></tt> and <tt class="docutils literal"><span class="pre">bgcolor+bgthresh</span></tt> range are interpreted as transparent.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-bgthresh</span> <span class="pre">&lt;background_color_threshold&gt;</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-inv</span></tt></p>
+<blockquote>
+<div><p>If specified, colors will be inverted.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-randinv</span></tt></p>
+<blockquote>
+<div><p>If specified, colors will be inverted randomly.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-maxidev</span> <span class="pre">&lt;max_intensity_deviation&gt;</span></tt></p>
+<blockquote>
+<div><p>Maximal intensity deviation of pixels in foreground samples.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-maxxangle</span> <span class="pre">&lt;max_x_rotation_angle&gt;</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-maxyangle</span> <span class="pre">&lt;max_y_rotation_angle&gt;</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-maxzangle</span> <span class="pre">&lt;max_z_rotation_angle&gt;</span></tt></p>
+<blockquote>
+<div><p>Maximum rotation angles must be given in radians.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-show</span></tt></p>
+<blockquote>
+<div><p>Useful debugging option. If specified, each sample will be shown. Pressing <tt class="docutils literal"><span class="pre">Esc</span></tt> will continue the samples creation process without.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-w</span> <span class="pre">&lt;sample_width&gt;</span></tt></p>
+<blockquote>
+<div><p>Width (in pixels) of the output samples.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-h</span> <span class="pre">&lt;sample_height&gt;</span></tt></p>
+<blockquote>
+<div><p>Height (in pixels) of the output samples.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-pngoutput</span></tt></p>
+<blockquote>
+<div><p>With this option switched on <tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> tool generates a collection of PNG samples and a number of associated annotation files, instead of a single <tt class="docutils literal"><span class="pre">vec</span></tt> file.</p>
+</div></blockquote>
+</li>
+</ul>
+<p>The <tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> utility may work in a number of modes, namely:</p>
+<ul>
+<li><dl class="first docutils">
+<dt>Creating training set from a single image and a collection of backgrounds:</dt>
+<dd><ul class="first last simple">
+<li>with a single <tt class="docutils literal"><span class="pre">vec</span></tt> file as an output;</li>
+<li>with a collection of JPG images and a file with annotations list as an output;</li>
+<li>with a collection of PNG images and associated files with annotations as an output;</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first">Converting the marked-up collection of samples into a <tt class="docutils literal"><span class="pre">vec</span></tt> format;</p>
+</li>
+<li><p class="first">Showing the content of the <tt class="docutils literal"><span class="pre">vec</span></tt> file.</p>
+</li>
+</ul>
+</div>
+<div class="section" id="creating-training-set-from-a-single-image-and-a-collection-of-backgrounds-with-a-single-vec-file-as-an-output">
+<h3>Creating training set from a single image and a collection of backgrounds with a single <tt class="docutils literal"><span class="pre">vec</span></tt> file as an output<a class="headerlink" href="#creating-training-set-from-a-single-image-and-a-collection-of-backgrounds-with-a-single-vec-file-as-an-output" title="Permalink to this headline">¶</a></h3>
+<p>The following procedure is used to create a sample object instance:
+The source image is rotated randomly around all three axes. The chosen angle is limited my <tt class="docutils literal"><span class="pre">-max?angle</span></tt>. Then pixels having the intensity from [<tt class="docutils literal"><span class="pre">bg_color-bg_color_threshold</span></tt>; <tt class="docutils literal"><span class="pre">bg_color+bg_color_threshold</span></tt>] range are interpreted as transparent. White noise is added to the intensities of the foreground. If the <tt class="docutils literal"><span class="pre">-inv</span></tt> key is specified then foreground pixel intensities are inverted. If <tt class="docutils literal"><span class="pre">-randinv</span></tt> key is specified then algorithm randomly selects whether inversion should be applied to this sample. Finally, the obtained image is placed onto an arbitrary background from the background description file, resized to the desired size specified by <tt class="docutils literal"><span class="pre">-w</span></tt> and <tt class="docutils literal"><span class="pre">-h</span></tt> and stored to the vec-file, specified by the <tt class="docutils literal"><span class="pre">-vec</span></tt> command line option.</p>
+</div>
+<div class="section" id="creating-training-set-as-a-collection-of-png-images">
+<h3>Creating training set as a collection of PNG images<a class="headerlink" href="#creating-training-set-as-a-collection-of-png-images" title="Permalink to this headline">¶</a></h3>
+<p>To obtain such behaviour the <tt class="docutils literal"><span class="pre">-img</span></tt>, <tt class="docutils literal"><span class="pre">-bg</span></tt>, <tt class="docutils literal"><span class="pre">-info</span></tt> and <tt class="docutils literal"><span class="pre">-pngoutput</span></tt> keys should be specified. The file name specified with <tt class="docutils literal"><span class="pre">-info</span></tt> key should include at least one level of directory hierarchy, that directory
+will be used as the top-level directory for the training set.
+For example, with the <tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> called as following:</p>
+<blockquote>
+<div><div class="highlight-text"><div class="highlight"><pre>opencv_createsamples -img /home/user/logo.png -bg /home/user/bg.txt -info /home/user/annotations.lst -pngoutput -maxxangle 0.1 -maxyangle 0.1 -maxzangle 0.1
+</pre></div>
+</div>
+</div></blockquote>
+<p>The output will have the following structure:</p>
+<blockquote>
+<div><div class="highlight-text"><div class="highlight"><pre>/home/user/
+    annotations/
+        0001_0107_0099_0195_0139.txt
+        0002_0107_0115_0195_0139.txt
+        ...
+    neg/
+        &lt;background files here&gt;
+    pos/
+        0001_0107_0099_0195_0139.png
+        0002_0107_0115_0195_0139.png
+        ...
+    annotations.lst
+</pre></div>
+</div>
+</div></blockquote>
+<p>With <tt class="docutils literal"><span class="pre">*.txt</span></tt> files in <tt class="docutils literal"><span class="pre">annotations</span></tt> directory containing information about object bounding box on the sample in a next format:</p>
+<blockquote>
+<div><div class="highlight-text"><div class="highlight"><pre>Image filename : &quot;/home/user/pos/0002_0107_0115_0195_0139.png&quot;
+Bounding box for object 1 &quot;PASperson&quot; (Xmin, Ymin) - (Xmax, Ymax) : (107, 115) - (302, 254)
+</pre></div>
+</div>
+</div></blockquote>
+<p>And <tt class="docutils literal"><span class="pre">annotations.lst</span></tt> file containing the list of all annotations file:</p>
+<blockquote>
+<div><div class="highlight-text"><div class="highlight"><pre>/home/user/annotations/0001_0109_0209_0195_0139.txt
+/home/user/annotations/0002_0241_0245_0139_0100.txt
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="creating-test-set-as-a-collection-of-jpg-images">
+<h3>Creating test set as a collection of JPG images<a class="headerlink" href="#creating-test-set-as-a-collection-of-jpg-images" title="Permalink to this headline">¶</a></h3>
+<p>This variant of <tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> usage is very similar to the previous one, but generates the output in a different format;
+To obtain such behaviour the <tt class="docutils literal"><span class="pre">-img</span></tt>, <tt class="docutils literal"><span class="pre">-bg</span></tt> and <tt class="docutils literal"><span class="pre">-info</span></tt> keys should be specified.
+For example, with the <tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> called as following:</p>
+<blockquote>
+<div><div class="highlight-text"><div class="highlight"><pre>opencv_createsamples -img /home/user/logo.png -bg /home/user/bg.txt -info annotations.lst -maxxangle 0.1 -maxyangle 0.1 -maxzangle 0.1
+</pre></div>
+</div>
+</div></blockquote>
+<p>Directory structure:</p>
+<blockquote>
+<div><div class="highlight-text"><div class="highlight"><pre>info.dat
+img1.jpg
+img2.jpg
+</pre></div>
+</div>
+</div></blockquote>
+<p>File info.dat:</p>
+<blockquote>
+<div><div class="highlight-text"><div class="highlight"><pre>img1.jpg  1  140 100 45 45
+img2.jpg  2  100 200 50 50   50 30 25 25
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="converting-the-marked-up-collection-of-samples-into-a-vec-format">
+<h3>Converting the marked-up collection of samples into a <tt class="docutils literal"><span class="pre">vec</span></tt> format<a class="headerlink" href="#converting-the-marked-up-collection-of-samples-into-a-vec-format" title="Permalink to this headline">¶</a></h3>
+<p>Positive samples also may be obtained from a collection of previously marked up images. This collection is described by a text file similar to background description file. Each line of this file corresponds to an image. The first element of the line is the filename. It is followed by the number of object instances. The following numbers are the coordinates of objects bounding rectangles (x, y, width, height).</p>
+<p>An example of description file:</p>
+<p>Directory structure:</p>
+<blockquote>
+<div><div class="highlight-text"><div class="highlight"><pre>/img
+  img1.jpg
+  img2.jpg
+info.dat
+</pre></div>
+</div>
+</div></blockquote>
+<p>File info.dat:</p>
+<blockquote>
+<div><div class="highlight-text"><div class="highlight"><pre>img/img1.jpg  1  140 100 45 45
+img/img2.jpg  2  100 200 50 50   50 30 25 25
+</pre></div>
+</div>
+</div></blockquote>
+<p>Image img1.jpg contains single object instance with the following coordinates of bounding rectangle: (140, 100, 45, 45). Image img2.jpg contains two object instances.</p>
+<p>In order to create positive samples from such collection, <tt class="docutils literal"><span class="pre">-info</span></tt> argument should be specified instead of <tt class="docutils literal"><span class="pre">-img</span></tt>:</p>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-info</span> <span class="pre">&lt;collection_file_name&gt;</span></tt></p>
+<blockquote>
+<div><p>Description file of marked up images collection.</p>
+</div></blockquote>
+</li>
+</ul>
+<p>The scheme of samples creation in this case is as follows. The object instances are taken from images. Then they are resized to target samples size and stored in output vec-file. No distortion is applied, so the only affecting arguments are <tt class="docutils literal"><span class="pre">-w</span></tt>, <tt class="docutils literal"><span class="pre">-h</span></tt>, <tt class="docutils literal"><span class="pre">-show</span></tt> and <tt class="docutils literal"><span class="pre">-num</span></tt>.</p>
+</div>
+<div class="section" id="showing-the-content-of-the-vec-file">
+<h3>Showing the content of the <tt class="docutils literal"><span class="pre">vec</span></tt> file<a class="headerlink" href="#showing-the-content-of-the-vec-file" title="Permalink to this headline">¶</a></h3>
+<p><tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> utility may be used for examining samples stored in positive samples file. In order to do this only <tt class="docutils literal"><span class="pre">-vec</span></tt>, <tt class="docutils literal"><span class="pre">-w</span></tt> and <tt class="docutils literal"><span class="pre">-h</span></tt> parameters should be specified.</p>
+<p>Note that for training, it does not matter how vec-files with positive samples are generated. But <tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> utility is the only one way to collect/create a vector file of positive samples, provided by OpenCV.</p>
+<p>Example of vec-file is available here <tt class="docutils literal"><span class="pre">opencv/data/vec_files/trainingfaces_24-24.vec</span></tt>. It can be used to train a face detector with the following window size: <tt class="docutils literal"><span class="pre">-w</span> <span class="pre">24</span> <span class="pre">-h</span> <span class="pre">24</span></tt>.</p>
+</div>
+</div>
+<div class="section" id="cascade-training">
+<h2>Cascade Training<a class="headerlink" href="#cascade-training" title="Permalink to this headline">¶</a></h2>
+<p>The next step is the training of classifier. As mentioned above <tt class="docutils literal"><span class="pre">opencv_traincascade</span></tt> or <tt class="docutils literal"><span class="pre">opencv_haartraining</span></tt> may be used to train a cascade classifier, but only the newer <tt class="docutils literal"><span class="pre">opencv_traincascade</span></tt> will be described further.</p>
+<p>Command line arguments of <tt class="docutils literal"><span class="pre">opencv_traincascade</span></tt> application grouped by purposes:</p>
+<ol class="arabic">
+<li><p class="first">Common arguments:</p>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-data</span> <span class="pre">&lt;cascade_dir_name&gt;</span></tt></p>
+<blockquote>
+<div><p>Where the trained classifier should be stored.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-vec</span> <span class="pre">&lt;vec_file_name&gt;</span></tt></p>
+<blockquote>
+<div><p>vec-file with positive samples (created by <tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> utility).</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-bg</span> <span class="pre">&lt;background_file_name&gt;</span></tt></p>
+<blockquote>
+<div><p>Background description file.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-numPos</span> <span class="pre">&lt;number_of_positive_samples&gt;</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-numNeg</span> <span class="pre">&lt;number_of_negative_samples&gt;</span></tt></p>
+<blockquote>
+<div><p>Number of positive/negative samples used in training for every classifier stage.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-numStages</span> <span class="pre">&lt;number_of_stages&gt;</span></tt></p>
+<blockquote>
+<div><p>Number of cascade stages to be trained.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-precalcValBufSize</span> <span class="pre">&lt;precalculated_vals_buffer_size_in_Mb&gt;</span></tt></p>
+<blockquote>
+<div><p>Size of buffer for precalculated feature values (in Mb).</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-precalcIdxBufSize</span> <span class="pre">&lt;precalculated_idxs_buffer_size_in_Mb&gt;</span></tt></p>
+<blockquote>
+<div><p>Size of buffer for precalculated feature indices (in Mb). The more memory you have the faster the training process.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-baseFormatSave</span></tt></p>
+<blockquote>
+<div><p>This argument is actual in case of Haar-like features. If it is specified, the cascade will be saved in the old format.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-acceptanceRatioBreakValue</span></tt></p>
+<blockquote>
+<div><p>This argument is used to determine how precise your model should keep learning and when to stop. A good guideline is to train not further than 10e-5, to ensure the model does not overtrain on your training data. By default this value is set to -1 to disable this feature.</p>
+</div></blockquote>
+</li>
+</ul>
+</li>
+<li><p class="first">Cascade parameters:</p>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-stageType</span> <span class="pre">&lt;BOOST(default)&gt;</span></tt></p>
+<blockquote>
+<div><p>Type of stages. Only boosted classifier are supported as a stage type at the moment.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-featureType&lt;{HAAR(default),</span> <span class="pre">LBP}&gt;</span></tt></p>
+<blockquote>
+<div><p>Type of features: <tt class="docutils literal"><span class="pre">HAAR</span></tt> - Haar-like features, <tt class="docutils literal"><span class="pre">LBP</span></tt> - local binary patterns.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-w</span> <span class="pre">&lt;sampleWidth&gt;</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-h</span> <span class="pre">&lt;sampleHeight&gt;</span></tt></p>
+<blockquote>
+<div><p>Size of training samples (in pixels). Must have exactly the same values as used during training samples creation (<tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> utility).</p>
+</div></blockquote>
+</li>
+</ul>
+</li>
+<li><p class="first">Boosted classifer parameters:</p>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-bt</span> <span class="pre">&lt;{DAB,</span> <span class="pre">RAB,</span> <span class="pre">LB,</span> <span class="pre">GAB(default)}&gt;</span></tt></p>
+<blockquote>
+<div><p>Type of boosted classifiers: <tt class="docutils literal"><span class="pre">DAB</span></tt> - Discrete AdaBoost, <tt class="docutils literal"><span class="pre">RAB</span></tt> - Real AdaBoost, <tt class="docutils literal"><span class="pre">LB</span></tt> - LogitBoost, <tt class="docutils literal"><span class="pre">GAB</span></tt> - Gentle AdaBoost.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-minHitRate</span> <span class="pre">&lt;min_hit_rate&gt;</span></tt></p>
+<blockquote>
+<div><p>Minimal desired hit rate for each stage of the classifier. Overall hit rate may be estimated as (min_hit_rate^number_of_stages).</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-maxFalseAlarmRate</span> <span class="pre">&lt;max_false_alarm_rate&gt;</span></tt></p>
+<p>Maximal desired false alarm rate for each stage of the classifier. Overall false alarm rate may be estimated as (max_false_alarm_rate^number_of_stages).</p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-weightTrimRate</span> <span class="pre">&lt;weight_trim_rate&gt;</span></tt></p>
+<blockquote>
+<div><p>Specifies whether trimming should be used and its weight. A decent choice is 0.95.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-maxDepth</span> <span class="pre">&lt;max_depth_of_weak_tree&gt;</span></tt></p>
+<blockquote>
+<div><p>Maximal depth of a weak tree. A decent choice is 1, that is case of stumps.</p>
+</div></blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-maxWeakCount</span> <span class="pre">&lt;max_weak_tree_count&gt;</span></tt></p>
+<blockquote>
+<div><p>Maximal count of weak trees for every cascade stage. The boosted classifier (stage) will have so many weak trees (<tt class="docutils literal"><span class="pre">&lt;=maxWeakCount</span></tt>), as needed to achieve the given <tt class="docutils literal"><span class="pre">-maxFalseAlarmRate</span></tt>.</p>
+</div></blockquote>
+</li>
+</ul>
+</li>
+<li><p class="first">Haar-like feature parameters:</p>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">-mode</span> <span class="pre">&lt;BASIC</span> <span class="pre">(default)</span> <span class="pre">|</span> <span class="pre">CORE</span> <span class="pre">|</span> <span class="pre">ALL&gt;</span></tt></p>
+<blockquote>
+<div><p>Selects the type of Haar features set used in training. <tt class="docutils literal"><span class="pre">BASIC</span></tt> use only upright features, while <tt class="docutils literal"><span class="pre">ALL</span></tt> uses the full set of upright and 45 degree rotated feature set. See <a class="reference internal" href="#rainer2002" id="id3">[Rainer2002]</a> for more details.</p>
+</div></blockquote>
+</li>
+</ul>
+</li>
+<li><p class="first">Local Binary Patterns parameters:</p>
+<p>Local Binary Patterns don&#8217;t have parameters.</p>
+</li>
+</ol>
+<p>After the <tt class="docutils literal"><span class="pre">opencv_traincascade</span></tt> application has finished its work, the trained cascade will be saved in cascade.xml file in the folder, which was passed as <tt class="docutils literal"><span class="pre">-data</span></tt> parameter. Other files in this folder are created for the case of interrupted training, so you may delete them after completion of training.</p>
+<p>Training is finished and you can test you cascade classifier!</p>
+<table class="docutils citation" frame="void" id="viola2001" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[Viola2001]</a></td><td>Paul Viola, Michael Jones. <em>Rapid Object Detection using a Boosted Cascade of Simple Features</em>. Conference on Computer Vision and Pattern Recognition (CVPR), 2001, pp. 511-518.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="rainer2002" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id3">[Rainer2002]</a></td><td>Rainer Lienhart and Jochen Maydt. <em>An Extended Set of Haar-like Features for Rapid Object Detection</em>. Submitted to ICIP2002.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="liao2007" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[Liao2007]</a></td><td>Shengcai Liao, Xiangxin Zhu, Zhen Lei, Lun Zhang and Stan Z. Li. <em>Learning Multi-scale Block Local Binary Patterns for Face Recognition</em>. International Conference on Biometrics (ICB), 2007, pp. 828-837.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+          </div>
+          <div class="feedback">
+              <h2>Help and Feedback</h2>
+              You did not find what you were looking for?
+              <ul>
+                  
+                  
+                  
+                  <li>Ask a question on the <a href="http://answers.opencv.org">Q&A forum</a>.</li>
+                  <li>If you think something is missing or wrong in the documentation,
+                  please file a <a href="http://code.opencv.org">bug report</a>.</li>
+              </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/opencv-logo-white.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none">
+      <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Search" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+      </p>
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3><a href="../../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Cascade Classifier Training</a><ul>
+<li><a class="reference internal" href="#introduction">Introduction</a><ul>
+<li><a class="reference internal" href="#important-notes">Important notes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#opencv-createsamples-utility"><tt class="docutils literal"><span class="pre">opencv_createsamples</span></tt> utility</a></li>
+<li><a class="reference internal" href="#training-data-preparation">Training data preparation</a><ul>
+<li><a class="reference internal" href="#negative-samples">Negative Samples</a></li>
+<li><a class="reference internal" href="#positive-samples">Positive Samples</a></li>
+<li><a class="reference internal" href="#creating-training-set-from-a-single-image-and-a-collection-of-backgrounds-with-a-single-vec-file-as-an-output">Creating training set from a single image and a collection of backgrounds with a single <tt class="docutils literal"><span class="pre">vec</span></tt> file as an output</a></li>
+<li><a class="reference internal" href="#creating-training-set-as-a-collection-of-png-images">Creating training set as a collection of PNG images</a></li>
+<li><a class="reference internal" href="#creating-test-set-as-a-collection-of-jpg-images">Creating test set as a collection of JPG images</a></li>
+<li><a class="reference internal" href="#converting-the-marked-up-collection-of-samples-into-a-vec-format">Converting the marked-up collection of samples into a <tt class="docutils literal"><span class="pre">vec</span></tt> format</a></li>
+<li><a class="reference internal" href="#showing-the-content-of-the-vec-file">Showing the content of the <tt class="docutils literal"><span class="pre">vec</span></tt> file</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cascade-training">Cascade Training</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="ug_kinect.html"
+                        title="previous chapter">Kinect and OpenNI</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="ug_intelperc.html"
+                        title="next chapter">Senz3D and Intel Perceptual Computing SDK</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../../_sources/doc/user_guide/ug_traincascade.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="ug_intelperc.html" title="Senz3D and Intel Perceptual Computing SDK"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="ug_kinect.html" title="Kinect and OpenNI"
+             >previous</a> |</li>
+        <li><a href="../../index.html">OpenCV 2.4.12.0 documentation</a> &raquo;</li>
+          <li><a href="user_guide.html" >OpenCV User Guide</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2014, opencv dev team.
+      Last updated on Mar 18, 2016.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>
