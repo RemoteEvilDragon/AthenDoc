@@ -1,0 +1,10 @@
+本教程介绍如何在ios环境下配置翻墙环境，兼容内外网高速浏览
+
+
+1.下载surge软件到自己的ios设备上，教程如下
+http://bbs.feng.com/read-htm-tid-10310847.html
+
+2.下好surge之后，使用http://27.126.181.90:10000/ss.conf-for-surge/configFileHere/gfwlist.conf导入外部配置
+
+如此完成之后，便可以自由浏览网络。
+
